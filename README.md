@@ -17,7 +17,7 @@ Welcome to NETRAVE, a cybersecurity solution designed to provide a high level of
 NETRAVE is an acronym for Network Environment for Threat Response and Advanced Vulnerability Extermination. It is a modular cybersecurity software that aims to provide a high level of security, vigilance, and response to threats, ensuring that network environments remain secure and resilient. 
 
 ## About the Developer
-Connor Crawford, also known as Vetheon, is the developer behind NETRAVE. With over 8 years of experience in the private sector, Connor has a wealth of knowledge and expertise in software development, particularly in the realm of cybersecurity. Recognizing the need for more transparency and open-source solutions in cybersecurity, he began producing open-source software, with NETRAVE being one of his first flagship projects.
+Connor Crawford, also known as Vetheon, is currently the only developer behind NETRAVE. With over 8 years of experience in the private sector, Connor has a wealth of knowledge and expertise in software development, particularly in the realm of cybersecurity. Recognizing the need for more transparency and open-source solutions in cybersecurity, he began producing open-source software, with NETRAVE being one of his first flagship projects.
 
 ## Technical Overview
 NETRAVE is designed with a modular architecture, which allows for easy customization, upgrades, and maintenance. Each module in NETRAVE is designed to perform a specific function, and they can work independently or in harmony, depending on the needs of the user. 
