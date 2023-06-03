@@ -100,8 +100,3 @@
 - [ ] Regularly update the software to address security vulnerabilities.
 - [ ] Implement a system for logging and monitoring for potential security threats.
 - [ ] Develop a response plan for potential security incidents.
-
-## 17. Community
-- [ ] Develop a strategy for building and nurturing a community around the software.
-- [ ] Implement a system for community members to communicate and collaborate.
-- [ ] Recognize and reward valuable contributions from the community.
