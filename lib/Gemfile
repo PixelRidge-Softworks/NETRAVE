@@ -6,3 +6,5 @@ source "https://rubygems.org"
 
 gem "curses", "~> 1.4"
 gem 'console'
+
+gem "rubocop", "~> 1.52"
