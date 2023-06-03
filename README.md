@@ -32,7 +32,7 @@ The modular design also allows for easy expansion. New modules can be added to t
 ## Contributing
 NETRAVE is an open-source project, and contributions are welcome. If you're interested in contributing, please fork the repository and make your changes. Once you're done, submit a pull request. All contributions, no matter how small, are greatly appreciated.
 
-If you're looking for something to do, we are currently looking for PRs that add in the WebApp made with Rails.
+If you're looking for something to do, you can have a look in our [TODO List](https://github.com/Pixelated-Studios/NETRAVE/blob/main/TODO.md)
 
 ## Contact
 Connor is always open to receiving questions. If you have any questions, suggestions, or just want to say hi, you can reach him at vetheon@pixelatedstudios.net or on discord via VetheonGames#0001.
