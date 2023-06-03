@@ -8,3 +8,5 @@ gem "curses", "~> 1.4"
 gem 'console'
 
 gem "rubocop", "~> 1.52"
+
+gem "solargraph", "~> 0.49.0"
