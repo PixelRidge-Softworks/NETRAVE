@@ -33,7 +33,7 @@ The modular design also allows for easy expansion. New modules can be added to t
 NETRAVE is an open-source project, and contributions are welcome. If you're interested in contributing, please fork the repository and make your changes. Once you're done, submit a pull request. All contributions, no matter how small, are greatly appreciated.
 
 ## Contact
-Connor is always open to receiving emails. If you have any questions, suggestions, or just want to say hi, you can reach him at vetheon@pixelatedstudios.net.
+Connor is always open to receiving questions. If you have any questions, suggestions, or just want to say hi, you can reach him at vetheon@pixelatedstudios.net or on discord via VetheonGames#0001.
 
 ## Conclusion
 NETRAVE is a robust, modular cybersecurity solution that provides a high level of security, vigilance, and response to threats. Its open-source nature and modular design make it a flexible and adaptable solution that can meet the changing needs of any network environment. Whether you're a network administrator looking for a comprehensive security solution, or a developer interested in contributing to an open-source project, NETRAVE has something to offer you.
