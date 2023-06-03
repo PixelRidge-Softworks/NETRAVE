@@ -1,0 +1,1 @@
+# TODO: Create Advanced Logger module (above basic file logging, we want to simplify the process of dealing with errors. No more incomprehenisble stack traces. Errors and Logs should be easily readable and understandable by the lay-person)
