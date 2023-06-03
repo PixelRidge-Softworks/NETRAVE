@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Prompt the user to choose the mode using dialog
+MODE=$(dialog --backtitle "NETRAVE Mode Selection" --title "Select Mode" --menu "Choose the mode to start NETRAVE:" 12 50 4 1 "CLI" 2 "GUI" 3 "WebApp" 2>&1 >/dev/tty)
+
+# Execute different commands based on the selected mode
+case $MODE in
+    1)
+        # CLI mode
+        ruby ./lib/NETRAVE.rb cli
+        ;;
+    2)
+        # GUI mode
+        ruby ./lib/NETRAVE.rb gui
+        ;;
+    3)
+        # WebApp mode
+        ruby ./lib/NETRAVE.rb webapp
+        ;;
+    *)
+        # Invalid selection or canceled
+        echo "Invalid selection or canceled."
+        ;;
+esac
