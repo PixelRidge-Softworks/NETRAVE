@@ -1,4 +1,11 @@
-def ask_for_uplink_speed
+require 'curses'
+require 'yaml'
+require_relative 'utilities.rb'
+
+class SystemInformationGather
+  include Utilities
+
+  def ask_for_uplink_speed
     while true
       Curses.clear
       Curses.setpos(2, 0)
@@ -16,7 +23,7 @@ def ask_for_uplink_speed
       end
     end
   end
-  
+
   def ask_for_downlink_speed
     while true
       Curses.clear
@@ -38,8 +45,8 @@ def ask_for_uplink_speed
 
   def valid_speed?(speed)
     speed.to_i > 0
-  end  
-  
+  end
+
   def ask_for_services
     while true
       Curses.clear
@@ -57,12 +64,12 @@ def ask_for_uplink_speed
       end
     end
   end
-  
+
   def valid_services?(services)
     # TODO: Validate the services
     true
   end
-  
+
   def services_to_hash(services)
     services_hash = {}
     services.each { |service| services_hash[service] = true }
@@ -75,19 +82,24 @@ def ask_for_uplink_speed
     Curses.addstr("Please enter your database username: ")
     Curses.refresh
     username = Curses.getstr.strip
-  
+
     Curses.setpos(2, 0)
     Curses.addstr("Please enter your database password: ")
     Curses.refresh
     Curses.echo = false
     password = Curses.getstr.strip
-    Curses.echo = true
-  
+    Curses.echo
     Curses.setpos(3, 0)
     Curses.addstr("Please enter your database name: ")
     Curses.refresh
     database = Curses.getstr.strip
-  
+
     { username: username, password: password, database: database }
-  end  
-  
+  end
+
+  def write_db_details_to_config_file(db_details)
+    File.open("config.yml", "w") do |file|
+      file.write(db_details.to_yaml)
+    end
+  end
+end
