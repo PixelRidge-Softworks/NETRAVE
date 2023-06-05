@@ -1,5 +1,7 @@
 # NETRAVE: Network Environment for Threat Response and Advanced Vulnerability Extermination
 
+Come chat with us on [![Discord](https://img.shields.io/discord/865652593932632134?label=Discord&logo=discord&logoColor=white&color=7289DA)](https://discord.com/invite/5sEHZKdd8h)
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [About NETRAVE](#about-netrave)
