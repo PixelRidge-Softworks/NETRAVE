@@ -1,0 +1,14 @@
+# This is an example Rubocop configuration file with all cops enabled.
+
+# AllCops section defines global settings.
+AllCops:
+  Exclude:
+    - 'vendor/**/*' # Exclude vendor directory
+    - 'db/schema.rb' # Exclude database schema file
+    - 'db/migrate/**/*' # Exclude database migration files
+
+# Enables all cops.
+# Set the value to `true` or `false` to enable/disable all cops.
+# You can also enable/disable specific cops individually.
+# By default, all cops are enabled.
+inherit_from: .rubocop_todo.yml

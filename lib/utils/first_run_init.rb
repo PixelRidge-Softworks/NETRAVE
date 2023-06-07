@@ -40,22 +40,22 @@ class FirstRunInit
     Curses.addstr("Please enter your database username: ")
     Curses.refresh
     username = Curses.getstr.strip
-  
+
     Curses.setpos(2, 0)
     Curses.addstr("Please enter your database password: ")
     Curses.refresh
     Curses.noecho
     password = Curses.getstr.strip
     Curses.echo
-  
+
     Curses.setpos(3, 0)
     Curses.addstr("Please enter your database name: ")
     Curses.refresh
     database = Curses.getstr.strip
-  
+
     { username: username, password: password, database: database }
   end
-  
+
   def write_db_details_to_config_file(db_details)
     File.open("config.yml", "w") do |file|
       file.write(db_details.to_yaml)
