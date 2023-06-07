@@ -16,3 +16,7 @@ gem "sequel", "~> 5.69"
 gem "mysql2", "~> 0.5.5"
 
 gem "yaml", "~> 0.2.1"
+
+gem "gtk3", "~> 4.1"
+
+gem "reek", "~> 6.1"
