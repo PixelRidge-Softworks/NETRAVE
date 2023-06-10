@@ -1,5 +1,0 @@
-{
-    "ruby.rubocop.autocorrectOnSave": true,
-    "ruby.rubocop.configFilePath": "/home/vetheon/VSCode/NETRAVE/.rubocop.yml",
-    "ruby.rubocop.executePath": "/home/vetheon/.rbenv/shims/"
-}
