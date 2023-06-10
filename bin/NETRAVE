@@ -1,31 +1,63 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
-require 'yaml'
-require_relative '../lib/utils/system_information_gather.rb'
-require_relative '../lib/utils/database_manager.rb'
-require_relative '../lib/utils/first_run_init.rb'
+require 'dotenv'
+require_relative '../lib/utils/system_information_gather'
+require_relative '../lib/utils/database_manager'
+require_relative '../lib/utils/first_run_init'
+require_relative '../lib/utils/utilities'
 
-# Check if config.yml exists, if not, create it
-unless File.exist?('config.yml')
-  first_run_init = FirstRunInit.new
-  db_details = first_run_init.ask_for_db_details
-  first_run_init.write_db_details_to_config_file(db_details)
+include Utilities # rubocop:disable Style/MixinUsage
+
+# Create .env file if it doesn't exist
+File.new('.env', 'w') unless File.exist?('.env')
+
+# Load environment variables from .env file
+Dotenv.load
+
+# Initialize DatabaseManager
+db_manager = DatabaseManager.new
+
+# Get database details from environment variables
+db_details = {
+  username: ENV['DB_USERNAME'],
+  password: ENV['DB_PASSWORD'],
+  key: ENV['DB_SECRET_KEY'],
+  database: ENV['DB_DATABASE']
+}
+
+# If any of the necessary details are missing, run the first run setup
+if db_details.values.any?(&:nil?)
+  puts 'Missing or incomplete configuration. Running first run setup.'
+  first_run_init = FirstRunInit.new(db_manager)
+  first_run_init.run
+  # Reload environment variables after first run setup
+  Dotenv.load
+  db_details = {
+    username: ENV['DB_USERNAME'],
+    password: ENV['DB_PASSWORD'],
+    key: ENV['DB_SECRET_KEY'],
+    database: ENV['DB_DATABASE']
+  }
 end
 
-# Load database configuration
-db_details = YAML.load_file('config.yml')
+# Decrypt the password
+db_details[:password] = decrypt_string_chacha20(db_details[:password], db_details[:key])
 
-# Initialize DatabaseManager and test connection
-db_manager = DatabaseManager.new
+# Test connection
+unless db_manager.test_db_connection(db_details)
+  puts 'Failed to connect to the database with existing configuration. Please re-enter your details.'
+  first_run_init = FirstRunInit.new(db_manager)
+  first_run_init.run
+end
+
+# Test connection again after potentially updating config
 if db_manager.test_db_connection(db_details)
-  puts "Successfully connected to the database."
+  puts 'Successfully connected to the database.'
 else
-  puts "Failed to connect to the database. Please check your configuration."
+  puts 'Failed to connect to the database. Please check your configuration.'
   exit 1
 end
 
-# Initialize the first run setup
-first_run_setup = FirstRunInit.new(db_manager)
-first_run_setup.run
-
+puts 'Program successfully ran with no errors'
 # TODO: Add the rest of your application logic here

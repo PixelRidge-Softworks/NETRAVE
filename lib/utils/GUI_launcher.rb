@@ -1,14 +1,15 @@
 require 'gtk3'
 
-class GUI_Launcher
-  def initialize
-    @app = Gtk::Application.new("com.netrave.gui", :flags_none)
+# GUI launcher
+class GUILauncher
+  def initialize # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+    @app = Gtk::Application.new('com.netrave.gui', :flags_none)
 
-    @app.signal_connect "activate" do |application|
+    @app.signal_connect 'activate' do |application|
       builder = Gtk::Builder.new
-      builder.add_from_file("./Glade/NETRAVE.glade")
+      builder.add_from_file('./Glade/NETRAVE.glade')
 
-      window = builder.get_object("main_window")
+      window = builder.get_object('main_window')
       window.application = application
 
       screen = Gdk::Screen.default
@@ -31,7 +32,7 @@ class GUI_Launcher
   end
 
   def run
-    puts "Launching GUI..."
+    puts 'Launching GUI...'
     @app.run
   end
 end

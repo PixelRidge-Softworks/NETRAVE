@@ -1,8 +1,10 @@
 require 'curses'
 require 'yaml'
-require_relative 'utilities.rb'
-require_relative 'database_manager.rb'
+require_relative 'utilities'
+require_relative 'database_manager'
+require 'dynamic_curses_input'
 
+# gather system info
 class SystemInformationGather
   include Utilities
 
@@ -10,7 +12,7 @@ class SystemInformationGather
     @db_manager = db_manager
   end
 
-  def gather_system_info
+  def gather_system_info # rubocop:disable Metrics/MethodLength
     uplink_speed = ask_for_uplink_speed
     downlink_speed = ask_for_downlink_speed
     services = ask_for_services
@@ -18,9 +20,9 @@ class SystemInformationGather
     total_bandwidth = uplink_speed + downlink_speed
 
     system_info = {
-      uplink_speed: uplink_speed,
-      downlink_speed: downlink_speed,
-      total_bandwidth: total_bandwidth
+      uplink_speed:,
+      downlink_speed:,
+      total_bandwidth:
     }
 
     # Check if the system_info table exists, if not, create it
@@ -36,79 +38,67 @@ class SystemInformationGather
     @db_manager.store_services(services)
   end
 
-  def ask_for_uplink_speed
-    while true
-      Curses.clear
-      Curses.setpos(2, 0)
-      Curses.addstr("Please enter your uplink speed (upload speed, e.g., 1000Mbps or 1Gbps). ")
-      Curses.addstr("This is typically the maximum upload speed provided by your ISP. ")
-      Curses.addstr("You can check your ISP bill, use an online speed test, or contact your ISP if you're unsure. ")
-      Curses.addstr(" ")
+  def ask_for_uplink_speed # rubocop:disable Metrics/MethodLength
+    Curses.clear
+    Curses.addstr("Please enter your uplink speed (upload speed, e.g., 1000Mbps or 1Gbps).\n" \
+                  "This is typically the maximum upload speed provided by your ISP.\n" \
+                  "You can check your ISP bill, use an online speed test, or contact your ISP if you're unsure.\n\n")
+    Curses.refresh
+    Curses.addstr('Uplink Speed: ')
+    speed = DCI.catch_input(true)
+    if valid_speed?(speed)
+      speed.end_with?('gbps') ? convert_speed_to_mbps(speed) : speed.to_i
+    else
       Curses.setpos(5, 0)
-      Curses.addstr("Uplink Speed: ")
+      Curses.addstr("Whoops! That didn't appear to be a valid speed. Please try again!")
       Curses.refresh
-      speed = Curses.getstr.strip.downcase
-      if valid_speed?(speed)
-        return speed.end_with?('gbps') ? convert_speed_to_mbps(speed) : speed.to_i
-      else
-        Curses.setpos(5, 0)
-        Curses.addstr("Whoops! That didn't appear to be a valid speed. Please try again!")
-        Curses.refresh
-      end
+      ask_for_uplink_speed
     end
   end
-  
-  def ask_for_downlink_speed
-    while true
-      Curses.clear
-      Curses.setpos(2, 0)
-      Curses.addstr("Please enter your downlink speed (download speed, e.g., 1000Mbps or 1Gbps). ")
-      Curses.addstr("This is typically the maximum download speed provided by your ISP. ")
-      Curses.addstr("You can check your ISP bill, use an online speed test, or contact your ISP if you're unsure. ")
+
+  def ask_for_downlink_speed # rubocop:disable Metrics/MethodLength
+    Curses.clear
+    Curses.addstr("Please enter your downlink speed (download speed, e.g., 1000Mbps or 1Gbps).\n" \
+                  "This is typically the maximum download speed provided by your ISP.\n"\
+                  "You can check your ISP bill, use an online speed test, or contact your ISP if you're unsure.\n\n")
+    Curses.refresh
+    Curses.addstr('Downlink Speed: ')
+    speed = DCI.catch_input(true)
+    if valid_speed?(speed)
+      speed.end_with?('gbps') ? convert_speed_to_mbps(speed) : speed.to_i
+    else
       Curses.setpos(5, 0)
-      Curses.addstr("Downlink Speed: ")
+      Curses.addstr("Whoops! That didn't appear to be a valid speed. Please try again!")
       Curses.refresh
-      speed = Curses.getstr.strip.downcase
-      if valid_speed?(speed)
-        return speed.end_with?('gbps') ? convert_speed_to_mbps(speed) : speed.to_i
-      else
-        Curses.setpos(5, 0)
-        Curses.addstr("Whoops! That didn't appear to be a valid speed. Please try again!")
-        Curses.refresh
-      end
+      ask_for_downlink_speed
     end
-  end  
+  end
 
   def valid_speed?(speed)
-    speed.to_i > 0
+    speed.to_i.positive?
   end
 
-  def ask_for_services
-    while true
-      Curses.clear
-      Curses.setpos(6, 0)
-      Curses.addstr("Please enter the services the system should be aware of (e.g., webserver, database). ")
-      Curses.addstr("Enter the services as a comma-separated list (e.g., webserver,database). ")
+  def ask_for_services # rubocop:disable Metrics/MethodLength
+    Curses.clear
+    Curses.addstr("Please enter the services the system should be aware of (e.g., webserver or database).\n" \
+                  "Enter the services as a comma-separated list (e.g., webserver,database).\n\n")
+    Curses.refresh
+    Curses.addstr('Services: ')
+    services = DCI.catch_input(true)
+    services_arr = services.strip.downcase.split(',').map(&:strip)
+
+    if valid_services?(services_arr)
+      services_arr # return the array of services directly
+    else
+      Curses.setpos(7, 0)
+      Curses.addstr("Whoops! That didn't appear to be a valid list of services. Please try again!")
       Curses.refresh
-      services = Curses.getstr.strip.downcase.split(',').map(&:strip)
-      if valid_services?(services)
-        return services_to_hash(services)
-      else
-        Curses.setpos(7, 0)
-        Curses.addstr("Whoops! That didn't appear to be a valid list of services. Please try again!")
-        Curses.refresh
-      end
+      ask_for_services
     end
   end
 
-  def valid_services?(services)
+  def valid_services?(_services)
     # TODO: Validate the services
     true
-  end
-
-  def services_to_hash(services)
-    services_hash = {}
-    services.each { |service| services_hash[service] = true }
-    services_hash
   end
 end
