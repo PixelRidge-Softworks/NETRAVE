@@ -9,8 +9,8 @@
 /test/tmp/
 /test/version_tmp/
 /tmp/
-/.vscode
-.rubocop.yml
+/.vscode/
+/.rubocop.yml
 
 # Used by dotenv library to load environment variables.
 # .env
