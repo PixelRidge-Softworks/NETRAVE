@@ -13,18 +13,20 @@ class DatabaseManager
     @db = nil
   end
 
-  def test_db_connection(db_details)
+  def test_db_connection(db_details) # rubocop:disable Metrics/MethodLength
     # Decrypt the password before using it
-    decrypted_password = decrypt_string_chacha20(db_details[:password], db_details[:key])
-    connection_string = "mysql2://#{db_details[:username]}:#{decrypted_password}@localhost/#{db_details[:database]}"
-    @db = Sequel.connect(connection_string)
-    # Try a simple query to test the connection
-    @db.run 'SELECT 1'
-    true
+    if db_details[:password] && db_details[:key]
+      decrypted_password = decrypt_string_chacha20(db_details[:password], db_details[:key])
+      connection_string = "mysql2://#{db_details[:username]}:#{decrypted_password}@localhost/#{db_details[:database]}"
+      @db = Sequel.connect(connection_string)
+      # Try a simple query to test the connection
+      @db.run 'SELECT 1'
+      true
+    else
+      false
+    end
   rescue Sequel::DatabaseConnectionError
     false
-  ensure
-    @db&.disconnect
   end
 
   def create_system_info_table

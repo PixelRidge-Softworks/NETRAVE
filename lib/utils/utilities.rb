@@ -4,6 +4,7 @@ require 'securerandom'
 require 'digest'
 require 'base64'
 require 'openssl'
+require_relative 'logg_man'
 
 # Utiltiies Module
 module Utilities
@@ -32,31 +33,26 @@ module Utilities
     Base64.encode64(SecureRandom.bytes(32)).chomp
   end
 
-  def encrypt_string_chacha20(string, key)
+  def encrypt_string_chacha20(data, key)
     cipher = OpenSSL::Cipher.new('chacha20')
     cipher.encrypt
-    cipher.key = Base64.decode64(key)
-    encrypted = cipher.update(string) + cipher.final
-    Base64.encode64(encrypted).chomp
+    cipher.key = Base64.decode64(key)  # Decode the key from Base64
+    encrypted_data = cipher.update(data) + cipher.final
+
+    loggman = LoggMan.new
+    loggman.log_debug("Data to be encrypted: #{data}")
+    loggman.log_debug("Key: #{key}")
+    loggman.log_debug("Encrypted data: #{encrypted_data}")
+
+    Base64.encode64(encrypted_data).chomp
   end
 
-  def decrypt_string_chacha20(encrypted_string, key)
-    decipher = OpenSSL::Cipher.new('chacha20')
-    decipher.decrypt
-    decipher.key = Base64.decode64(key)
-    decrypted = Base64.decode64(encrypted_string)
-    decipher.update(decrypted) + decipher.final
-  end
+  def decrypt_string_chacha20(encrypted_data, key)
+    return nil if encrypted_data.nil?
 
-  # Encrypts a given data object using Blowfish and returns the encrypted string
-  def encrypt_data_blowfish(data, key)
-    plain_text = YAML.dump(data)
-    encrypt_string_blowfish(plain_text, key)
-  end
-
-  # Decrypts a given encrypted string using Blowfish and returns the original data object
-  def decrypt_data_blowfish(encrypted_text, key)
-    plain_text = decrypt_string_blowfish(encrypted_text, key)
-    YAML.load(plain_text)
+    cipher = OpenSSL::Cipher.new('chacha20')
+    cipher.decrypt
+    cipher.key = Base64.decode64(key)  # Decode the key from Base64
+    cipher.update(Base64.decode64(encrypted_data)) + cipher.final
   end
 end

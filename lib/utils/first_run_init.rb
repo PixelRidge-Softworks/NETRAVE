@@ -6,6 +6,7 @@ require 'dotenv'
 require_relative 'database_manager'
 require_relative 'system_information_gather'
 require_relative 'utilities'
+require_relative 'logg_man'
 
 # first run class
 class FirstRunInit
@@ -15,6 +16,7 @@ class FirstRunInit
   def initialize(db_manager = nil)
     @db_manager = db_manager || DatabaseManager.new
     @info_gatherer = SystemInformationGather.new(@db_manager)
+    @loggman = LoggMan.new
   end
 
   def run
@@ -75,17 +77,23 @@ class FirstRunInit
     # Encrypt the password
     encrypted_password = encrypt_string_chacha20(password, key)
 
-    { username:, password: encrypted_password, key:, database: }
+    db_details = { username:, password: encrypted_password, key:, database: }
+    write_db_details_to_config_file(db_details)
   end
 
   def write_db_details_to_config_file(db_details)
     # Write the database details to the .env file
     File.open('.env', 'w') do |file|
-      file.puts "DB_USERNAME=#{db_details[:username]}"
-      file.puts "DB_PASSWORD=#{db_details[:password]}"
-      file.puts "DB_SECRET_KEY=#{db_details[:key]}"
-      file.puts "DB_DATABASE=#{db_details[:database]}"
+      file.puts %(DB_USERNAME="#{db_details[:username]}")
+      file.puts %(DB_PASSWORD="#{db_details[:password]}")
+      file.puts %(DB_SECRET_KEY="#{db_details[:key]}")
+      file.puts %(DB_DATABASE="#{db_details[:database]}")
     end
+
+    # Load the .env file using dotenv
+    Dotenv.load
+  rescue StandardError => e
+    @loggman.log_error("Failed to write to .env file: #{e.message}")
   end
 
   def ask_for_default_mode

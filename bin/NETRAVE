@@ -10,7 +10,7 @@ require_relative '../lib/utils/utilities'
 include Utilities # rubocop:disable Style/MixinUsage
 
 # Create .env file if it doesn't exist
-File.new('.env', 'w') unless File.exist?('.env')
+File.open('.env', 'w') {} unless File.exist?('.env')
 
 # Load environment variables from .env file
 Dotenv.load
@@ -42,7 +42,9 @@ if db_details.values.any?(&:nil?)
 end
 
 # Decrypt the password
-db_details[:password] = decrypt_string_chacha20(db_details[:password], db_details[:key])
+if db_details[:password] && db_details[:key]
+  db_details[:password] = decrypt_string_chacha20(db_details[:password], db_details[:key])
+end
 
 # Test connection
 unless db_manager.test_db_connection(db_details)
