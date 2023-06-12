@@ -10,7 +10,7 @@ require_relative '../lib/utils/utilities'
 require_relative '../lib/utils/logg_man'
 
 include Utilities # rubocop:disable Style/MixinUsage
-
+# binding.b(do: 'irb')
 loggman = LoggMan.new
 
 # Create .env file if it doesn't exist
