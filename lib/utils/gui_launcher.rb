@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'gtk3'
 
 # GUI launcher
@@ -16,10 +18,10 @@ class GUILauncher
       width = screen.width
       height = screen.height
 
-      if width >= 3840 and height >= 2160
+      if (width >= 3840) && (height >= 2160)
         # 4K resolution
         window.set_default_size(1200, 1000)
-      elsif width >= 1920 and height >= 1080
+      elsif (width >= 1920) && (height >= 1080)
         # 1080p resolution
         window.set_default_size(1080, 800)
       else

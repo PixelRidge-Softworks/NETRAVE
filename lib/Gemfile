@@ -30,3 +30,5 @@ gem 'base64', '~> 0.1.1'
 gem 'securerandom', '~> 0.2.2'
 
 gem 'dotenv', '~> 2.8'
+
+gem "tracer", "~> 0.2.2"

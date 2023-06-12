@@ -17,20 +17,25 @@ class FirstRunInit
     @db_manager = db_manager || DatabaseManager.new
     @info_gatherer = SystemInformationGather.new(@db_manager)
     @loggman = LoggMan.new
+    Dotenv.load
   end
 
   def run
     first_run_setup
   end
 
-  def first_run_setup # rubocop:disable Metrics/MethodLength
+  def first_run_setup # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
     db_details = ask_for_db_details
 
-    until @db_manager.test_db_connection(db_details)
+    enc_pass = ENV['DB_PASSWORD']
+    enc_key = ENV['DB_SECRET_KEY']
+    dec_pass = decrypt_string_chacha20(enc_pass, enc_key)
+    until @db_manager.test_db_connection(ENV['DB_USERNAME'], dec_pass.to_s, ENV['DB_DATABASE'])
       Curses.setpos(4, 0)
       Curses.addstr("Whoops! We couldn't connect to the database with the details you provided. Please try again!")
       Curses.refresh
-      db_details = ask_for_db_details
+      new_db_details = ask_for_db_details
+      db_details.merge!(new_db_details) # Update db_details with new details
     end
 
     @db_manager.create_system_info_table

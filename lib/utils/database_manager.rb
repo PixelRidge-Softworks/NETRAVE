@@ -4,6 +4,7 @@ require 'sequel'
 require 'mysql2'
 require_relative 'system_information_gather'
 require_relative '../utils/utilities'
+require_relative 'logg_man'
 
 # database manager
 class DatabaseManager
@@ -11,25 +12,49 @@ class DatabaseManager
 
   def initialize
     @db = nil
+    @loggman = LoggMan.new
   end
 
-  def test_db_connection(db_details) # rubocop:disable Metrics/MethodLength
-    # Decrypt the password before using it
-    if db_details[:password] && db_details[:key]
-      decrypted_password = decrypt_string_chacha20(db_details[:password], db_details[:key])
-      connection_string = "mysql2://#{db_details[:username]}:#{decrypted_password}@localhost/#{db_details[:database]}"
-      @db = Sequel.connect(connection_string)
-      # Try a simple query to test the connection
-      @db.run 'SELECT 1'
-      true
-    else
-      false
-    end
-  rescue Sequel::DatabaseConnectionError
+  def test_db_connection(username, password, database) # rubocop:disable Metrics/MethodLength
+    loggman = LoggMan.new
+    loggman.log_info('Attempting to connect to the database...')
+    display_alert('Attempting to connect to the database...', :info)
+
+    # Create the connection string
+    connection_string = "mysql2://#{username}:#{password}@localhost/#{database}"
+    @db = Sequel.connect(connection_string)
+    # Try a simple query to test the connection
+    @db.run 'SELECT 1'
+    loggman.log_info('Successfully connected to the database.')
+    display_alert('Successfully connected to the database.', :info)
+    true
+  rescue Sequel::DatabaseConnectionError => e
+    loggman.log_error("Failed to connect to the database: #{e.message}")
+    display_alert('Failed to connect to the database!', :error)
     false
   end
 
-  def create_system_info_table
+  def create_system_info_table # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+    if @db.nil?
+      # Attempt to establish a connection
+      username = ENV['DB_USERNAME']
+      password = decrypt_string_chacha20(ENV['DB_PASSWORD'], ENV['DB_SECRET_KEY'])
+      database = ENV['DB_DATABASE']
+      if test_db_connection(username, password, database)
+        @loggman.log_info('Successfully connected to the database.')
+        display_alert('Successfully connected to the Database1', :info)
+      else
+        # If the connection attempt fails, log an error and return
+        @loggman.log_error('Failed to connect to the database.')
+        return
+      end
+    end
+
+    if @db.nil?
+      @loggman.log_error('@db is still nil after attempting to connect to the database.')
+      return
+    end
+
     @db.create_table? :system_info do
       primary_key :id
       Integer :uplink_speed
