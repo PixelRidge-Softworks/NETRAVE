@@ -4,15 +4,23 @@ require 'securerandom'
 require 'digest'
 require 'base64'
 require 'openssl'
-require_relative 'logg_man'
 
 # Utiltiies Module
 module Utilities
   # Converts speed from Gbps to Mbps if necessary
   def convert_speed_to_mbps(speed)
-    return nil unless speed.is_a?(String) && speed.match?(/\A\d+(gbps|mbps)\z/i)
+    return nil unless speed.is_a?(String) && speed.downcase.match?(/\A\d+(gbps|mbps)\z/i)
 
-    speed.end_with?('gbps') ? speed.to_i * 1000 : speed.to_i
+    # Extract the numeric part and the unit from the speed
+    numeric_speed, unit = speed.downcase.match(/(\d+)(gbps|mbps)/i).captures
+
+    # Convert the numeric part to an integer
+    numeric_speed = numeric_speed.to_i
+
+    # If the unit is 'gbps', multiply the numeric part by 1000
+    numeric_speed *= 1000 if unit == 'gbps'
+
+    numeric_speed
   end
 
   # Converts an array of services into a hash

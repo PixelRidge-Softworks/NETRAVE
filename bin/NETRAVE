@@ -11,7 +11,7 @@ require_relative '../lib/utils/logg_man'
 
 include Utilities # rubocop:disable Style/MixinUsage
 # binding.b(do: 'irb')
-loggman = LoggMan.new
+@loggman = LoggMan.new
 
 # Create .env file if it doesn't exist
 File.open('.env', 'w') {} unless File.exist?('.env')
@@ -20,7 +20,7 @@ File.open('.env', 'w') {} unless File.exist?('.env')
 Dotenv.load
 
 # Initialize DatabaseManager
-db_manager = DatabaseManager.new
+db_manager = DatabaseManager.new(@loggman)
 
 # Get database details from environment variables
 db_details = {
@@ -30,34 +30,50 @@ db_details = {
   database: ENV['DB_DATABASE']
 }
 
+# Decrypt password
+dec_pass = decrypt_string_chacha20(db_details[:password], db_details[:key])
+
 # If any of the necessary details are missing, run the first run setup
 if db_details.values.any?(&:nil?)
-  loggman.log_warn('Missing or incomplete configuration. Running first run setup.')
-  first_run_init = FirstRunInit.new(db_manager)
+  @loggman.log_warn('Missing or incomplete configuration. Running first run setup.')
+  first_run_init = FirstRunInit.new(@loggman, db_manager)
   first_run_init.run
   # Reload environment variables after first run setup
   Dotenv.load
-  username = ENV['DB_USERNAME']
-  password = ENV['DB_PASSWORD']
-  key = ENV['DB_SECRET_KEY']
-  database = ENV['DB_DATABASE']
+  db_details = {
+    username: ENV['DB_USERNAME'],
+    password: ENV['DB_PASSWORD'],
+    key: ENV['DB_SECRET_KEY'],
+    database: ENV['DB_DATABASE']
+  }
+  # Decrypt password again after potentially updating config
+  dec_pass = decrypt_string_chacha20(db_details[:password], db_details[:key])
 end
 
 # Test connection
-dec_pass = decrypt_string_chacha20(password, key)
-unless db_manager.test_db_connection(username, dec_pass, database)
-  loggman.log_warn('Failed to connect to the database with existing configuration. Please re-enter your details.')
-  first_run_init = FirstRunInit.new(db_manager)
+unless db_manager.test_db_connection(db_details[:username], dec_pass, db_details[:database])
+  @loggman.log_warn('Failed to connect to the database with existing configuration. Please re-enter your details.')
+  first_run_init = FirstRunInit.new(@loggman, db_manager)
   first_run_init.run
+  # Reload environment variables after potentially updating config
+  Dotenv.load
+  db_details = {
+    username: ENV['DB_USERNAME'],
+    password: ENV['DB_PASSWORD'],
+    key: ENV['DB_SECRET_KEY'],
+    database: ENV['DB_DATABASE']
+  }
+  # Decrypt password again after potentially updating config
+  dec_pass = decrypt_string_chacha20(db_details[:password], db_details[:key])
 end
 
 # Test connection again after potentially updating config
-if db_manager.test_db_connection(username, dec_pass, database)
-  loggman.log_info('Successfully connected to the database.')
+if db_manager.test_db_connection(db_details[:username], dec_pass, db_details[:database])
+  @loggman.log_info('Successfully connected to the database.')
 else
-  loggman.log_error('Failed to connect to the database. Please check your configuration.')
+  @loggman.log_error('Failed to connect to the database. Please check your configuration.')
   exit 1
 end
 
-puts 'Program successfully ran with no errors'
-# TODO: Add the rest of your application logic here
+@loggman.log_warn('Program successfully ran with no errors')
+# TODO: Add the rest of application logic here

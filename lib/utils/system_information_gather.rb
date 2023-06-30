@@ -10,8 +10,9 @@ require 'dynamic_curses_input'
 class SystemInformationGather
   include Utilities
 
-  def initialize(db_manager)
+  def initialize(db_manager, logger)
     @db_manager = db_manager
+    @loggman = logger
   end
 
   def gather_system_info # rubocop:disable Metrics/MethodLength
@@ -43,7 +44,7 @@ class SystemInformationGather
       Curses.refresh
       Curses.addstr('Uplink Speed: ')
       speed = DCI.catch_input(true)
-      return speed.end_with?('gbps') ? convert_speed_to_mbps(speed) : speed.to_i if valid_speed?(speed)
+      return convert_speed_to_mbps(speed) if valid_speed?(speed)
 
       Curses.setpos(5, 0)
       Curses.addstr("Whoops! That didn't appear to be a valid speed. Please try again!")
@@ -60,7 +61,7 @@ class SystemInformationGather
       Curses.refresh
       Curses.addstr('Downlink Speed: ')
       speed = DCI.catch_input(true)
-      return speed.end_with?('gbps') ? convert_speed_to_mbps(speed) : speed.to_i if valid_speed?(speed)
+      return convert_speed_to_mbps(speed) if valid_speed?(speed)
 
       Curses.setpos(5, 0)
       Curses.addstr("Whoops! That didn't appear to be a valid speed. Please try again!")
@@ -69,7 +70,7 @@ class SystemInformationGather
   end
 
   def valid_speed?(speed)
-    speed.to_i.positive?
+    speed.to_i.positive? && speed.match?(/\A\d+(gbps|mbps)\z/i)
   end
 
   def ask_for_services # rubocop:disable Metrics/MethodLength

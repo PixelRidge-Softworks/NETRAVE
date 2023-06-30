@@ -4,20 +4,18 @@ require 'sequel'
 require 'mysql2'
 require_relative 'system_information_gather'
 require_relative '../utils/utilities'
-require_relative 'logg_man'
 
 # database manager
 class DatabaseManager
   include Utilities
 
-  def initialize
+  def initialize(logger)
     @db = nil
-    @loggman = LoggMan.new
+    @loggman = logger
   end
 
   def test_db_connection(username, password, database) # rubocop:disable Metrics/MethodLength
-    loggman = LoggMan.new
-    loggman.log_info('Attempting to connect to the database...')
+    @loggman.log_info('Attempting to connect to the database...')
     display_alert('Attempting to connect to the database...', :info)
 
     # Create the connection string
@@ -25,11 +23,11 @@ class DatabaseManager
     @db = Sequel.connect(connection_string)
     # Try a simple query to test the connection
     @db.run 'SELECT 1'
-    loggman.log_info('Successfully connected to the database.')
+    @loggman.log_info('Successfully connected to the database.')
     display_alert('Successfully connected to the database.', :info)
     true
   rescue Sequel::DatabaseConnectionError => e
-    loggman.log_error("Failed to connect to the database: #{e.message}")
+    @loggman.log_error("Failed to connect to the database: #{e.message}")
     display_alert('Failed to connect to the database!', :error)
     false
   end
@@ -63,8 +61,25 @@ class DatabaseManager
     end
   end
 
-  def store_system_info(system_info)
-    @db[:system_info].insert(system_info)
+  def store_system_info(system_info) # rubocop:disable Metrics/MethodLength
+    # Check if the system_info already exists in the database
+    @loggman.log_info('Checking if info exists in the Database...')
+
+    existing_system_info = @db[:system_info].where(uplink_speed: system_info[:uplink_speed],
+                                                   downlink_speed: system_info[:downlink_speed],
+                                                   total_bandwidth: system_info[:total_bandwidth]).first
+
+    if existing_system_info
+      # If it exists, update it
+      @loggman.log_info('Info already exists. Updating instead of adding more data to the table...')
+
+      @db[:system_info].where(id: existing_system_info[:id]).update(system_info)
+    else
+      # If it doesn't exist, insert it
+      @loggman.log_info('Info does not exist already, inserting it...')
+
+      @db[:system_info].insert(system_info)
+    end
   end
 
   def create_services_table
@@ -75,9 +90,24 @@ class DatabaseManager
     end
   end
 
-  def store_services(services)
+  def store_services(services) # rubocop:disable Metrics/MethodLength
     services.each do |service|
-      @db[:services].insert(service_name: service, status: true)
+      # Check if the service already exists in the database
+      @loggman.log_info('Checking if info exists in the Database...')
+
+      existing_service = @db[:services].where(service_name: service).first
+
+      if existing_service
+        # If it exists, update it
+        @loggman.log_info('Info already exists, updating instead of adding more data to the table...')
+
+        @db[:services].where(id: existing_service[:id]).update(service_name: service, status: true)
+      else
+        # If it doesn't exist, insert it
+        @loggman.log_info('Info does not exist already, inserting it...')
+
+        @db[:services].insert(service_name: service, status: true)
+      end
     end
   end
 end

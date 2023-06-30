@@ -6,17 +6,16 @@ require 'dotenv'
 require_relative 'database_manager'
 require_relative 'system_information_gather'
 require_relative 'utilities'
-require_relative 'logg_man'
 
 # first run class
 class FirstRunInit
   include Utilities
   include Curses
 
-  def initialize(db_manager = nil)
-    @db_manager = db_manager || DatabaseManager.new
-    @info_gatherer = SystemInformationGather.new(@db_manager)
-    @loggman = LoggMan.new
+  def initialize(logger, db_manager = nil)
+    @db_manager = db_manager || DatabaseManager.new(logger)
+    @info_gatherer = SystemInformationGather.new(@db_manager, logger)
+    @loggman = logger
     Dotenv.load
   end
 
@@ -57,33 +56,40 @@ class FirstRunInit
   end
 
   def ask_for_db_details # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+    @loggman.log_info('Asking for Database details...')
     Curses.clear
 
     Curses.setpos(1, 0)
     Curses.addstr('Please enter your database username: ')
     Curses.refresh
     username = DCI.catch_input(true)
+    @loggman.log_info('Database Username entered!')
 
     Curses.setpos(2, 0)
     Curses.addstr('Please enter your database password: ')
     Curses.refresh
     Curses.noecho
     password = DCI.catch_input(false)
+    @loggman.log_info('Database Password Stored Securely!')
     Curses.echo
 
     Curses.setpos(3, 0)
     Curses.addstr('Please enter your database name: ')
     Curses.refresh
     database = DCI.catch_input(true)
+    @loggman.log_info('Database Name entered!')
 
     # Generate a secret key
     key = generate_key
+    @loggman.log_info('Secret Key Generated!')
 
     # Encrypt the password
     encrypted_password = encrypt_string_chacha20(password, key)
+    @loggman.log_info('Password Encrypted!')
 
     db_details = { username:, password: encrypted_password, key:, database: }
     write_db_details_to_config_file(db_details)
+    @loggman.log_info('Wiriting Database details to a file!')
   end
 
   def write_db_details_to_config_file(db_details)
@@ -95,8 +101,10 @@ class FirstRunInit
       file.puts %(DB_DATABASE="#{db_details[:database]}")
     end
 
+    @loggman.log_info('Database details saved! Reloading environment...')
     # Load the .env file using dotenv
     Dotenv.load
+    @loggman.log_info('Environment restarted!')
   rescue StandardError => e
     @loggman.log_error("Failed to write to .env file: #{e.message}")
   end
