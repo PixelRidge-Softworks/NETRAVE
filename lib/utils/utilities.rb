@@ -4,6 +4,7 @@ require 'securerandom'
 require 'digest'
 require 'base64'
 require 'openssl'
+require 'sudo'
 
 # Utiltiies Module
 module Utilities
@@ -49,8 +50,7 @@ module Utilities
 
     Base64.encode64(encrypted_data).chomp
   rescue OpenSSL::Cipher::CipherError => e
-    loggman = LoggMan.new
-    loggman.log_error("Failed to encrypt data: #{e.message}")
+    @loggman.log_error("Failed to encrypt data: #{e.message}")
     nil
   end
 
@@ -67,13 +67,11 @@ module Utilities
     if decrypted_data.valid_encoding?
       decrypted_data
     else
-      loggman = LoggMan.new
-      loggman.log_error("Decrypted data is not valid ASCII: #{decrypted_data.inspect}")
+      @loggman.log_error("Decrypted data is not valid ASCII: #{decrypted_data.inspect}")
       nil
     end
   rescue OpenSSL::Cipher::CipherError => e
-    loggman = LoggMan.new
-    loggman.log_error("Failed to decrypt data: #{e.message}")
+    @loggman.log_error("Failed to decrypt data: #{e.message}")
     nil
   end
 
@@ -103,5 +101,44 @@ module Utilities
     Curses.attroff(Curses.color_pair(1)) if severity == :info
     Curses.attroff(Curses.color_pair(3)) if severity == :warning
     Curses.attroff(Curses.color_pair(2)) if severity == :error
+  end
+
+  def ask_for_sudo(logger)
+    @loggman = logger
+    @loggman.log_info('Asking for sudo password...')
+    Curses.addstr('Please enter your sudo password: ')
+    sudo_password = DCI.catch_input(true)
+    @loggman.log_info('Sudo password received.')
+    sudo_password
+  end
+
+  def test_and_deescalate_sudo(sudo_password)
+    # Run a simple command with sudo privileges
+    Sudo::Wrapper.run('ls', password: sudo_password)
+
+    # Invalidate the user's cached credentials
+    Sudo::Wrapper.run('sudo -k', password: sudo_password)
+
+    # Encrypt the sudo password and store it in an environment variable
+    encrypted_sudo_password = encrypt_string_chacha20(sudo_password, @secret_key)
+    ENV['SPW'] = encrypted_sudo_password
+
+    true
+  rescue Sudo::Wrapper::InvalidPassword
+    false
+  end
+
+  def clear_sudo_password
+    # Retrieve the encrypted sudo password from the environment variable
+    encrypted_sudo_password = ENV['SPW']
+
+    # Decrypt the sudo password
+    sudo_password = decrypt_string_chacha20(encrypted_sudo_password, @secret_key)
+
+    # Clear the sudo password from memory
+    sudo_password.replace(' ' * sudo_password.length)
+
+    # Remove the encrypted sudo password from the environment variables
+    ENV.delete('SPW')
   end
 end

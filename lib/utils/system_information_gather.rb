@@ -38,7 +38,7 @@ class SystemInformationGather
   def ask_for_uplink_speed # rubocop:disable Metrics/MethodLength
     loop do
       Curses.clear
-      Curses.addstr("Please enter your uplink speed (upload speed, e.g., 1000Mbps or 1Gbps).\n" \
+      Curses.addstr("Please enter your uplink speed (upload speed, e.g., 150Mbps or 1Gbps).\n" \
                     "This is typically the maximum upload speed provided by your ISP.\n" \
                     "You can check your ISP bill, use an online speed test, or contact your ISP if you're unsure.\n\n")
       Curses.refresh
