@@ -13,10 +13,12 @@ class FirstRunInit
   include Utilities
   include Curses
 
-  def initialize(loggman, alert_queue_manager, db_manager = nil)
-    @loggman = loggman
+  def initialize(logger, alert_queue_manager, db_manager = nil)
+    @loggman = logger
     @db_manager = db_manager
     @alert_queue_manager = alert_queue_manager
+    @info_gatherer = SystemInformationGather.new(@db_manager, @loggman)
+    Dotenv.load
   end
 
   def run

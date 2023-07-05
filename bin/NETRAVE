@@ -87,4 +87,4 @@ end
 # End of the program
 
 # wait for the alert_queue_manager to block before we exit.
-@alert_queue_manager.join_worker
+@alert_queue_manager.shutdown

@@ -31,12 +31,12 @@ gem 'securerandom', '~> 0.2.2'
 
 gem 'dotenv', '~> 2.8'
 
-gem "tracer", "~> 0.2.2"
+gem 'tracer', '~> 0.2.2'
 
-gem "flay", "~> 2.13"
+gem 'flay', '~> 2.13'
 
-gem "pcaprub", "~> 0.13.1"
+gem 'pcaprub', '~> 0.13.1'
 
-gem "packetfu", "~> 2.0"
+gem 'packetfu', '~> 2.0'
 
-gem "sudo", "~> 0.2.0"
+gem 'sudo', '~> 0.2.0'
