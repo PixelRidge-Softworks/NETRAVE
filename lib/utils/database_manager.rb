@@ -9,26 +9,29 @@ require_relative '../utils/utilities'
 class DatabaseManager
   include Utilities
 
-  def initialize(logger)
+  def initialize(logger, alert_queue_manager)
     @db = nil
     @loggman = logger
+    @alert_queue_manager = alert_queue_manager
   end
 
   def test_db_connection(username, password, database) # rubocop:disable Metrics/MethodLength
     @loggman.log_info('Attempting to connect to the database...')
-    display_alert('Attempting to connect to the database...', :info)
 
     # Create the connection string
     connection_string = "mysql2://#{username}:#{password}@localhost/#{database}"
     @db = Sequel.connect(connection_string)
     # Try a simple query to test the connection
     @db.run 'SELECT 1'
+
     @loggman.log_info('Successfully connected to the database.')
-    display_alert('Successfully connected to the database.', :info)
+    alert = Alert.new('Successfully connected to the database.', :info)
+    @alert_queue_manager.enqueue_alert(alert)
     true
   rescue Sequel::DatabaseConnectionError => e
     @loggman.log_error("Failed to connect to the database: #{e.message}")
-    display_alert('Failed to connect to the database!', :error)
+    alert = Alert.new('Failed to connect to the database!', :error)
+    @alert_queue_manager.enqueue_alert(alert)
     false
   end
 
@@ -40,7 +43,8 @@ class DatabaseManager
       database = ENV['DB_DATABASE']
       if test_db_connection(username, password, database)
         @loggman.log_info('Successfully connected to the database.')
-        display_alert('Successfully connected to the Database1', :info)
+        alert = Alert.new('Successfully connected to the database.')
+        @alert_queue_manager.enqueue_alert(alert)
       else
         # If the connection attempt fails, log an error and return
         @loggman.log_error('Failed to connect to the database.')

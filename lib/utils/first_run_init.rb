@@ -6,17 +6,17 @@ require 'dotenv'
 require_relative 'database_manager'
 require_relative 'system_information_gather'
 require_relative 'utilities'
+require_relative 'alert_manager'
 
 # first run class
 class FirstRunInit
   include Utilities
   include Curses
 
-  def initialize(logger, db_manager = nil)
-    @db_manager = db_manager || DatabaseManager.new(logger)
-    @info_gatherer = SystemInformationGather.new(@db_manager, logger)
-    @loggman = logger
-    Dotenv.load
+  def initialize(loggman, alert_queue_manager, db_manager = nil)
+    @loggman = loggman
+    @db_manager = db_manager
+    @alert_queue_manager = alert_queue_manager
   end
 
   def run
@@ -62,6 +62,8 @@ class FirstRunInit
     Curses.setpos(1, 0)
     Curses.addstr('Please enter your database username: ')
     Curses.refresh
+    alert = Alert.new('This is a test alert', :error)
+    @alert_queue_manager.enqueue_alert(alert)
     username = DCI.catch_input(true)
     @loggman.log_info('Database Username entered!')
 
@@ -92,7 +94,7 @@ class FirstRunInit
     @loggman.log_info('Wiriting Database details to a file!')
   end
 
-  def write_db_details_to_config_file(db_details)
+  def write_db_details_to_config_file(db_details) # rubocop:disable Metrics/MethodLength
     # Write the database details to the .env file
     File.open('.env', 'w') do |file|
       file.puts %(DB_USERNAME="#{db_details[:username]}")

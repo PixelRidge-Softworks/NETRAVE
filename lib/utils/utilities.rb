@@ -75,34 +75,6 @@ module Utilities
     nil
   end
 
-  def display_alert(message, severity) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
-    case severity
-    when :info
-      Curses.attron(Curses.color_pair(1)) # Blue color
-    when :warning
-      Curses.attron(Curses.color_pair(3)) # Yellow color
-    when :error
-      Curses.attron(Curses.color_pair(2)) # Red color
-    end
-
-    Curses.setpos(Curses.lines - 1, 0)
-    Curses.addstr(message)
-    Curses.refresh
-
-    Thread.new do
-      sleep(5) # Pause for 5 seconds
-
-      # Clear the alert
-      Curses.setpos(Curses.lines - 1, 0)
-      Curses.clrtoeol
-      Curses.refresh
-    end
-
-    Curses.attroff(Curses.color_pair(1)) if severity == :info
-    Curses.attroff(Curses.color_pair(3)) if severity == :warning
-    Curses.attroff(Curses.color_pair(2)) if severity == :error
-  end
-
   def ask_for_sudo(logger)
     @loggman = logger
     @loggman.log_info('Asking for sudo password...')

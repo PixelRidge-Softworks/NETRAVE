@@ -8,6 +8,8 @@ require_relative '../lib/utils/database_manager'
 require_relative '../lib/utils/first_run_init'
 require_relative '../lib/utils/utilities'
 require_relative '../lib/utils/logg_man'
+require_relative '../lib/utils/alert_queue_manager'
+require_relative '../lib/utils/alert_manager'
 
 include Utilities # rubocop:disable Style/MixinUsage
 # binding.b(do: 'irb')
@@ -19,8 +21,11 @@ File.open('.env', 'w') {} unless File.exist?('.env')
 # Load environment variables from .env file
 Dotenv.load
 
+# Initialize AlertQueueManager, RingBuffer, and AlertManager
+@alert_queue_manager = AlertQueueManager.new(@loggman)
+
 # Initialize DatabaseManager
-db_manager = DatabaseManager.new(@loggman)
+db_manager = DatabaseManager.new(@loggman, @alert_queue_manager)
 
 # Get database details from environment variables
 db_details = {
@@ -36,7 +41,7 @@ dec_pass = decrypt_string_chacha20(db_details[:password], db_details[:key])
 # If any of the necessary details are missing, run the first run setup
 if db_details.values.any?(&:nil?)
   @loggman.log_warn('Missing or incomplete configuration. Running first run setup.')
-  first_run_init = FirstRunInit.new(@loggman, db_manager)
+  first_run_init = FirstRunInit.new(@loggman, @alert_queue_manager, db_manager)
   first_run_init.run
   # Reload environment variables after first run setup
   Dotenv.load
@@ -53,7 +58,7 @@ end
 # Test connection
 unless db_manager.test_db_connection(db_details[:username], dec_pass, db_details[:database])
   @loggman.log_warn('Failed to connect to the database with existing configuration. Please re-enter your details.')
-  first_run_init = FirstRunInit.new(@loggman, db_manager)
+  first_run_init = FirstRunInit.new(@loggman, @alert_queue_manager, db_manager)
   first_run_init.run
   # Reload environment variables after potentially updating config
   Dotenv.load
@@ -76,4 +81,10 @@ else
 end
 
 @loggman.log_warn('Program successfully ran with no errors')
+
 # TODO: Add the rest of application logic here
+
+# End of the program
+
+# wait for the alert_queue_manager to block before we exit.
+@alert_queue_manager.join_worker
