@@ -77,40 +77,59 @@ module Utilities
 
   def ask_for_sudo(logger)
     @loggman = logger
-    @loggman.log_info('Asking for sudo password...')
+    @loggman.log_info('Asking for sudo password... (This log entry will be removed)')
     Curses.addstr('Please enter your sudo password: ')
-    sudo_password = DCI.catch_input(true)
-    @loggman.log_info('Sudo password received.')
-    sudo_password
-  end
+    # use the dynamic curses input gem in secure mode to collect the sudo password
+    sudo_password = DCI.catch_input(false)
+    @loggman.log_info('Sudo password received. (This log entry will be removed)')
 
-  def test_and_deescalate_sudo(sudo_password)
-    # Run a simple command with sudo privileges
-    Sudo::Wrapper.run('ls', password: sudo_password)
-
-    # Invalidate the user's cached credentials
-    Sudo::Wrapper.run('sudo -k', password: sudo_password)
-
-    # Encrypt the sudo password and store it in an environment variable
+    # Encrypt the sudo password right away and store it in an environment variable
     encrypted_sudo_password = encrypt_string_chacha20(sudo_password, @secret_key)
     ENV['SPW'] = encrypted_sudo_password
+
+    # Clear the unencrypted sudo password from memory
+    sudo_password.replace(' ' * sudo_password.length)
+  end
+
+  def test_sudo
+    # Run a simple ls command with sudo privileges to test
+    use_sudo('ls')
 
     true
   rescue Sudo::Wrapper::InvalidPassword
     false
   end
 
-  def clear_sudo_password
+  def deescalate_sudo
     # Retrieve the encrypted sudo password from the environment variable
     encrypted_sudo_password = ENV['SPW']
 
     # Decrypt the sudo password
     sudo_password = decrypt_string_chacha20(encrypted_sudo_password, @secret_key)
 
+    # Invalidate the user's cached credentials
+    Sudo::Wrapper.run('sudo -k', password: sudo_password)
+
     # Clear the sudo password from memory
     sudo_password.replace(' ' * sudo_password.length)
 
     # Remove the encrypted sudo password from the environment variables
     ENV.delete('SPW')
+  end
+
+  def use_sudo(command)
+    # Retrieve the encrypted sudo password from the environment variable
+    encrypted_sudo_password = ENV['SPW']
+
+    # Decrypt the sudo password
+    sudo_password = decrypt_string_chacha20(encrypted_sudo_password, @secret_key)
+
+    # Use the sudo password to run the command
+    result = Sudo::Wrapper.run(command, password: sudo_password)
+
+    # Clear the sudo password from memory
+    sudo_password.replace(' ' * sudo_password.length)
+
+    result
   end
 end
