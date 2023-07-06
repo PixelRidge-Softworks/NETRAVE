@@ -1,45 +1,47 @@
 # frozen_string_literal: true
 
-require_relative 'ring_buffer'
-# Class for managing the queues for alerts
+require_relative 'alert'
+require_relative 'logg_man'
+
+# Class for managing the queue of alerts. This class also manages a little bit of concurrency
+# We use mutex for sync so we don't break Curses, as Curses isn't thread safe
 class AlertQueueManager
   SHUTDOWN_SIGNAL = 'shutdown'
 
-  def initialize(logger, size = 2 * 1024 * 1024) # rubocop:disable Metrics/MethodLength
+  def initialize(logger) # rubocop:disable Metrics/MethodLength
     @loggman = logger
-    @queue = RingBuffer.new(@loggman, size)
+    @alert_queue = []
     @shutdown = false
-
-    # Start a thread that continuously checks the queue and displays alerts
     @worker_thread = Thread.new do
       loop do
-        break if @shutdown && @queue.empty?
-
-        if @queue.empty?
+        if @alert_queue.empty?
           sleep(0.1) # Sleep for 100 milliseconds
           next
         end
 
-        alert = @queue.pop # This will block until there's an alert in the queue
-        next if alert.nil?
-
+        alert = pop_alert
         break if alert.message == SHUTDOWN_SIGNAL
 
         alert.display
         sleep(4.5)
-        alert.clear
       end
     end
   end
 
   def enqueue_alert(alert)
-    return if @shutdown
+    @alert_queue << alert
+  end
 
-    @queue.push(alert)
+  def pop_alert
+    @alert_queue.shift
   end
 
   def shutdown
-    @shutdown = true
     enqueue_alert(Alert.new(SHUTDOWN_SIGNAL, :info))
+    @shutdown = true
+  end
+
+  def join_worker
+    @worker_thread.join if @shutdown
   end
 end
