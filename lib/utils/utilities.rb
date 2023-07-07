@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
+require 'English'
 require 'securerandom'
 require 'digest'
 require 'base64'
 require 'openssl'
-require 'sudo'
+require 'pty'
+require 'expect'
 
 # Utiltiies Module
-module Utilities
+module Utilities # rubocop:disable Metrics/ModuleLength
   # Converts speed from Gbps to Mbps if necessary
   def convert_speed_to_mbps(speed)
     return nil unless speed.is_a?(String) && speed.downcase.match?(/\A\d+(gbps|mbps)\z/i)
@@ -75,17 +77,53 @@ module Utilities
     nil
   end
 
-  def ask_for_sudo(logger)
+  def ask_for_sudo(logger) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
     @loggman = logger
-    @loggman.log_info('Asking for sudo password... (This log entry will be removed)')
-    Curses.addstr('Please enter your sudo password: ')
+    @loggman.log_info('Asking for sudo and explaining why...')
+    lines = [
+      'We require sudo permissions to complete certain steps.',
+      'Granting a program sudo access is a significant decision.',
+      'We treat your sudo password with the utmost care.',
+      'We handle it "As a Bomb".',
+      '',
+      'As soon as we receive your sudo password, it is encrypted.',
+      'The unencrypted password is then wiped from the system.',
+      'This includes the sudo cache.',
+      'When we need to use your sudo password, we decrypt it.',
+      'We use it, and then immediately wipe it again.',
+      'We only ever store the encrypted version of your password.',
+      'We delete even that as soon as we finish the operations.',
+      'However, even with these precautions, there is always a risk.',
+      'If an attacker were to gain access to this program,',
+      'they could potentially decrypt your password.',
+      'Therefore, you should only enter your sudo password',
+      'if you fully understand and accept these risks.',
+      '',
+      '',
+      'Please enter your sudo password ONLY if you understand',
+      'and accept the risks described above: '
+    ]
+    Curses.clear
+    lines.each_with_index do |line, index|
+      Curses.setpos(index, 0) # Move the cursor to the beginning of the next line
+      Curses.addstr(line)
+    end
     # use the dynamic curses input gem in secure mode to collect the sudo password
     sudo_password = DCI.catch_input(false)
     @loggman.log_info('Sudo password received. (This log entry will be removed)')
+    @loggman.log_info("Entered sudo password: #{sudo_password}")
+
+    # Generate a new secret key
+    key = SecureRandom.random_bytes(32) # generates a random string of 32 bytes
+
+    # encode the key for storage
+    @secret_key = Base64.encode64(key)
 
     # Encrypt the sudo password right away and store it in an environment variable
     encrypted_sudo_password = encrypt_string_chacha20(sudo_password, @secret_key)
+    @loggman.log_info("Encrypted sudo password: #{encrypted_sudo_password}")
     ENV['SPW'] = encrypted_sudo_password
+    ENV['SDSECRET_KEY'] = @secret_key
 
     # Clear the unencrypted sudo password from memory
     sudo_password.replace(' ' * sudo_password.length)
@@ -96,7 +134,7 @@ module Utilities
     use_sudo('ls')
 
     true
-  rescue Sudo::Wrapper::InvalidPassword
+  rescue PTY::ChildExited
     false
   end
 
@@ -104,32 +142,72 @@ module Utilities
     # Retrieve the encrypted sudo password from the environment variable
     encrypted_sudo_password = ENV['SPW']
 
+    # Retrieve the secret key from the environment variable
+    @secret_key = ENV['SDSECRET_KEY']
+
     # Decrypt the sudo password
     sudo_password = decrypt_string_chacha20(encrypted_sudo_password, @secret_key)
 
     # Invalidate the user's cached credentials
-    Sudo::Wrapper.run('sudo -k', password: sudo_password)
+    PTY.spawn('sudo -S -k') do |r, w, _pid|
+      w.sync = true
+      r.expect(/password/) { w.puts sudo_password }
+    end
 
     # Clear the sudo password from memory
     sudo_password.replace(' ' * sudo_password.length)
 
-    # Remove the encrypted sudo password from the environment variables
+    # Remove the encrypted sudo password and the secret key from the environment variables
     ENV.delete('SPW')
+    ENV.delete('SECRET_KEY')
   end
 
-  def use_sudo(command)
+  def use_sudo(command) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+    @secret_key = ENV['SDSECRET_KEY']
     # Retrieve the encrypted sudo password from the environment variable
     encrypted_sudo_password = ENV['SPW']
 
     # Decrypt the sudo password
     sudo_password = decrypt_string_chacha20(encrypted_sudo_password, @secret_key)
 
+    # this is only here for debugging
+    @loggman.log_info("Decrypted sudo password: #{sudo_password}")
+
+    # Log the command
+    @loggman.log_info("Running command: #{command}")
+
     # Use the sudo password to run the command
-    result = Sudo::Wrapper.run(command, password: sudo_password)
+    exit_status = nil
+    begin
+      Timeout.timeout(60) do
+        PTY.spawn("sudo -S #{command} 2>&1") do |r, w, pid|
+          w.sync = true
+          r.expect(/password/) { w.puts sudo_password }
+          while IO.select([r], nil, nil, 0.1)
+            output = r.read_nonblock(1000)
+            output.each_line { |line| @loggman.log_info("Command output: #{line.strip}") }
+          end
+          begin
+            Process.wait(pid)
+            exit_status = $CHILD_STATUS.exitstatus
+          ensure
+            # Clear the sudo password from memory
+            sudo_password.replace(' ' * sudo_password.length)
+          end
+        end
+      end
+    rescue Timeout::Error
+      @loggman.log_error("Command '#{command}' timed out")
+    rescue Errno::EIO
+      # This error is expected when the process has finished
+    end
 
-    # Clear the sudo password from memory
-    sudo_password.replace(' ' * sudo_password.length)
+    if exit_status&.zero?
+      @loggman.log_info("Command '#{command}' completed successfully")
+    else
+      @loggman.log_error("Command '#{command}' failed with exit status #{exit_status}")
+    end
 
-    result
+    exit_status
   end
 end

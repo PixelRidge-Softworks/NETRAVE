@@ -7,6 +7,7 @@ require_relative 'database_manager'
 require_relative 'system_information_gather'
 require_relative 'utilities'
 require_relative 'alert_manager'
+require_relative 'networking_genie'
 
 # first run class
 class FirstRunInit
@@ -25,18 +26,18 @@ class FirstRunInit
     first_run_setup
   end
 
-  def first_run_setup # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
-    db_details = ask_for_db_details
+  def first_run_setup # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    ask_for_db_details
+    dec_pass = decrypt_string_chacha20(ENV['DB_PASSWORD'], ENV['DB_SECRET_KEY'])
+    connection_established = @db_manager.test_db_connection(ENV['DB_USERNAME'], dec_pass.to_s, ENV['DB_DATABASE'])
 
-    enc_pass = ENV['DB_PASSWORD']
-    enc_key = ENV['DB_SECRET_KEY']
-    dec_pass = decrypt_string_chacha20(enc_pass, enc_key)
-    until @db_manager.test_db_connection(ENV['DB_USERNAME'], dec_pass.to_s, ENV['DB_DATABASE'])
+    until connection_established
       Curses.setpos(4, 0)
-      Curses.addstr("Whoops! We couldn't connect to the database with the details you provided. Please try again!")
+      alert = Alert.new("We couldn't connect to the database with the details you provided Please try again!", :warning)
+      @alert_queue_manager.enqueue_alert(alert)
       Curses.refresh
-      new_db_details = ask_for_db_details
-      db_details.merge!(new_db_details) # Update db_details with new details
+      ask_for_db_details
+      connection_established = @db_manager.test_db_connection(ENV['DB_USERNAME'], dec_pass.to_s, ENV['DB_DATABASE'])
     end
 
     @db_manager.create_system_info_table
@@ -55,6 +56,15 @@ class FirstRunInit
 
     @db_manager.store_system_info(system_info)
     @db_manager.store_services(services)
+
+    # ask for sudo permissions to setup the networking stuff we need
+    ask_for_sudo(@loggman)
+
+    # Set up networking
+    networking_genie = NetworkingGenie.new(@loggman, @alert_queue_manager)
+    main_interface = networking_genie.find_main_interface
+    dummy_interface = networking_genie.create_dummy_interface('netrave0')
+    networking_genie.setup_traffic_mirroring(main_interface, dummy_interface)
   end
 
   def ask_for_db_details # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
@@ -64,8 +74,6 @@ class FirstRunInit
     Curses.setpos(1, 0)
     Curses.addstr('Please enter your database username: ')
     Curses.refresh
-    alert = Alert.new('This is a test alert', :error)
-    @alert_queue_manager.enqueue_alert(alert)
     username = DCI.catch_input(true)
     @loggman.log_info('Database Username entered!')
 

@@ -38,5 +38,3 @@ gem 'flay', '~> 2.13'
 gem 'pcaprub', '~> 0.13.1'
 
 gem 'packetfu', '~> 2.0'
-
-gem 'sudo', '~> 0.2.0'

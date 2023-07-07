@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'alert'
+require_relative 'alert_manager'
 require_relative 'logg_man'
 
 # Class for managing the queue of alerts. This class also manages a little bit of concurrency
