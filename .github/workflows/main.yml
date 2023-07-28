@@ -1,0 +1,42 @@
+name: RuboCop Auto-correct
+
+on:
+  push:
+    branches: [ "development" ]
+
+jobs:
+  autocorrect:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ['3.2']
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@ee2113536afb7f793eed4ce60e8d3b26db912da4 # v1.127.0
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Install RuboCop
+      run: gem install rubocop
+    - name: Run RuboCop
+      run: rubocop -A --fail-level warn
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git commit -m "Apply RuboCop auto-correct" || echo "No changes to commit"
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v3
+      with:
+        token: ${{ secrets.RUBOCOP_CHECKS }}
+        title: "Apply RuboCop auto-correct"
+        branch: "rubocop-autocorrect-${{ github.run_number }}"
+        base: "development"
+        delete-branch: true
+        body: "This PR applies RuboCop auto-corrections to the codebase."
